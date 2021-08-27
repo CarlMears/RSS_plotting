@@ -1,0 +1,6 @@
+numpy
+matplotlib
+rss_stats
+cartopy
+cmocean
+netCDF4
