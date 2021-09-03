@@ -2,3 +2,4 @@ global_map
 plot_2d_hist
 plot_scat
 sea_ice_plotting
+zonal_mean

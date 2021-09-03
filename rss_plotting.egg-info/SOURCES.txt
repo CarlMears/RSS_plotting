@@ -13,3 +13,5 @@ rss_plotting.egg-info/requires.txt
 rss_plotting.egg-info/top_level.txt
 sea_ice_plotting/__init__.py
 sea_ice_plotting/sea_ice_plotting.py
+zonal_mean/__init__.py
+zonal_mean/plt_zonal_mean_array.py
