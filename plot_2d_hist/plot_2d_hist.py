@@ -39,7 +39,7 @@ def plot_2d_hist(hist, xedges, yedges, nbins=120,
                  aspect='equal', plot_diagonal=False, plot_horiz_means=False,num_scale = 10000.0,reduce_max = 1.0,
                  plot_horiz_medians=True,plot_vert_medians = True,
                  fig_in = None,ax_in = None,
-                 norm='Linear',cmap = 'ocean_r',plt_colorbar=True,fontsize=16):
+                 norm='Linear',cmap = 'ocean_r',plt_colorbar=True,fontsize=16,return_im=False,panel_label=None,panel_label_loc=[0.07,0.9]):
 
     X, Y = np.meshgrid(xedges, yedges)
     hist_max = np.max(hist)*reduce_max
@@ -109,7 +109,13 @@ def plot_2d_hist(hist, xedges, yedges, nbins=120,
         x_vals  = (xedges[0:-1] + xedges[1:])/2.
         ax.plot(x_vals,median_arr,color='orange')
 
-    return fig, ax
+    if panel_label is not None:
+        plt.text(panel_label_loc[0],panel_label_loc[1],panel_label,transform=ax.transAxes,fontsize=16)
+
+    if return_im:
+        return fig, ax,im
+    else:
+        return fig, ax
 
 def plot_2D_hist_slices(hist, xedges, yedges, title='', xtitle='', ytitle='', nbins=120, z1_range=(0.0, 1.2),
                  z2_range=(0.0, 1.2),plot_diagonal=False,slice_indices = [3,4,5,6,7,8,9,10,11,12,18]):
