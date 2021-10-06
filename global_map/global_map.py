@@ -4,20 +4,23 @@ import matplotlib as mpl
 import cartopy.crs as ccrs
 from netCDF4 import Dataset as netcdf_dataset
 
-def global_map( a, 
-                vmin=0.0, 
-                vmax=30.0, 
-                cmap=None, 
-                plt_colorbar=False,
-                title='',
-                extent=None,
-                central_longitude = 0.0,
-                units = '',
-                fig_in=None,
-                ax_in=None,
-                return_map = False,
-                panel_label=None,
-                panel_label_loc = [0.03,0.90]):
+import typing
+
+def global_map(a, 
+                fig_in = None,
+                ax_in = None,
+                extent = None,
+                panel_label_loc = [0.03,0.90],
+                vmin:float=0.0, 
+                vmax:float=30.0, 
+                cmap:str = 'BrBG', 
+                plt_colorbar:bool = False,
+                title:str='',
+                central_longitude:float=0.0,
+                units:str = '',
+                return_map:bool = False,
+                panel_label:str = None,
+                ):
 
 
     img_extent = [-180.0, 180.0, -90.0, 90.0]
@@ -35,8 +38,9 @@ def global_map( a,
         item.set_fontsize(16)
     sz = a.shape
     num_lons = sz[1]
-
-    map = ax.imshow(np.flipud(np.roll(a, int(num_lons/2), axis=1)), cmap=cmap, origin='upper', transform=ccrs.PlateCarree(),
+    cmap_copy = plt.get_cmap(cmap).copy()
+    cmap_copy.set_bad('grey')
+    map = ax.imshow(np.flipud(np.roll(a, int(num_lons/2), axis=1)), cmap=cmap_copy, origin='upper', transform=ccrs.PlateCarree(),
                     norm=mpl.colors.Normalize(vmin=vmin, vmax=vmax), extent=img_extent)
     if plt_colorbar:
         cbar = fig.colorbar(map, shrink=0.7, orientation='horizontal')
