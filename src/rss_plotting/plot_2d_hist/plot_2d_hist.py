@@ -33,9 +33,9 @@ def calc_stats_from_hist(hist,edges):
     num = np.sum(hist)
     return mean,stddev,num
 
-def plot_2d_hist(hist, xedges, yedges, nbins=120,
+def plot_2d_hist(hist, xedges, yedges,
                  title='', xtitle='', ytitle='',  
-                 z1_range=(0.0, 1.2), z2_range=(0.0, 1.2), 
+                 x_range=(0.0, 1.2), y_range=(0.0, 1.2), 
                  aspect='equal', plot_diagonal=False, plot_horiz_means=False,num_scale = 10000.0,reduce_max = 1.0,
                  plot_horiz_medians=True,plot_vert_medians = True,
                  fig_in = None,ax_in = None,
@@ -72,11 +72,11 @@ def plot_2d_hist(hist, xedges, yedges, nbins=120,
     for item in (ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(fontsize)
     
-    if  z1_range is not None:
-        ax.set_xlim(z1_range)
-    if  z2_range is not None:
-        ax.set_ylim(z2_range)
-        ax.plot(z1_range,z2_range,color='r')
+    if  x_range is not None:
+        ax.set_xlim(x_range)
+    if  y_range is not None:
+        ax.set_ylim(y_range)
+        ax.plot(x_range,y_range,color='r')
 
     if plt_colorbar:
         cbar = fig.colorbar(im,ax=ax)
@@ -117,7 +117,7 @@ def plot_2d_hist(hist, xedges, yedges, nbins=120,
     else:
         return fig, ax
 
-def plot_2D_hist_slices(hist, xedges, yedges, title='', xtitle='', ytitle='', nbins=120, z1_range=(0.0, 1.2),
+def plot_2D_hist_slices(hist, xedges, yedges, title='', xtitle='', ytitle='', z1_range=(0.0, 1.2),
                  z2_range=(0.0, 1.2),plot_diagonal=False,slice_indices = [3,4,5,6,7,8,9,10,11,12,18]):
 
     fig = plt.figure(figsize=(8, 6))
@@ -131,11 +131,5 @@ def plot_2D_hist_slices(hist, xedges, yedges, title='', xtitle='', ytitle='', nb
 
     ax.set_xlim(-6.0,6.0)
     ax.legend()
-
-        #for item in ([ax.title, ax.xaxis.label, ax.yaxis.label]):
-        #    item.set_fontsize(20)
-        #for item in (ax.get_xticklabels() + ax.get_yticklabels()):
-        #   item.set_fontsize(16)
-        # ax.plot(z1_range,z2_range,color='r')
 
     return fig,ax
