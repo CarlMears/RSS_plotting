@@ -12,8 +12,9 @@ Makes a global map of the values in "a".
 Example Call:
 	fig,ax = global_map(global_wind_speed,plt_colorbar=True,cmap='viridis',title='Wind Speed',units='Wind Speed (m/s)',panel_label='A')
     
-	*A similar, but less mature routine, global_map_w_zonal_mean, is also included*
-	*A routine, write_global_map_netcdf, to write a global map to a netcdf file is also included
+*A similar, but less mature routine, __global_map_w_zonal_mean__, is also included*
+
+*A routine, __write_global_map_netcdf__, to write a global map to a netcdf file is also included*
 	
 ## plot_2d_array.py
 Plots a 2d array of values with labels and colorbar
@@ -41,13 +42,13 @@ Example Call:
 				plot_diagonal=True, marker = '.'):
 				
 
-##sea_ice_plotting
+## sea_ice_plotting
 This package contains specialized set ice plotting routines.  Not documented yet
             
-##plt_time_lat
+## plt_time_lat
 Plots a time-lat color coded plot - i.e. a Hovmeuller plot.
- Example Call
- plt_time_lat(z=zonal_data,year_range=[2003,2012],xlabel='Year',ylabel='Latitude',title='Example Time Lat plot',units='data units',cmap = 'BrBG',vmin = -1.0,vmax = 1.0,plot_colorbar=True):
+Example Call
+	plt_time_lat(z=zonal_data,year_range=[2003,2012],xlabel='Year',ylabel='Latitude',title='Example Time Lat plot',units='data units',cmap = 'BrBG',vmin = -1.0,vmax = 1.0,plot_colorbar=True):
 
 
     
