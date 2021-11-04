@@ -33,13 +33,30 @@ def calc_stats_from_hist(hist,edges):
     num = np.sum(hist)
     return mean,stddev,num
 
-def plot_2d_hist(hist, xedges, yedges,
-                 title='', xtitle='', ytitle='',  
-                 x_range=(0.0, 1.2), y_range=(0.0, 1.2), 
-                 aspect='equal', plot_diagonal=False, plot_horiz_means=False,num_scale = 10000.0,reduce_max = 1.0,
-                 plot_horiz_medians=True,plot_vert_medians = True,
-                 fig_in = None,ax_in = None,
-                 norm='Linear',cmap = 'ocean_r',plt_colorbar=True,fontsize=16,return_im=False,panel_label=None,panel_label_loc=[0.07,0.9]):
+def plot_2d_hist(hist, 
+                 xedges, 
+                 yedges,
+                 title='', 
+                 xtitle='', 
+                 ytitle='',  
+                 x_range=(0.0, 1.2), 
+                 y_range=(0.0, 1.2), 
+                 aspect='equal', 
+                 plot_diagonal=False, 
+                 plot_horiz_means=False,
+                 num_scale = 10000.0,
+                 reduce_max = 1.0,
+                 plot_horiz_medians=True,
+                 plot_vert_medians = True,
+                 fig_in = None,
+                 ax_in = None,
+                 norm='Linear',
+                 cmap = 'ocean_r',
+                 plt_colorbar=True,
+                 fontsize=16,
+                 return_im=False,
+                 panel_label=None,
+                 panel_label_loc=[0.07,0.9]):
 
     X, Y = np.meshgrid(xedges, yedges)
     hist_max = np.max(hist)*reduce_max
