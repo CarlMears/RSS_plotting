@@ -5,8 +5,44 @@ import cartopy.crs as ccrs
 from netCDF4 import Dataset as netcdf_dataset
 
 import typing
+import warnings
 
 def global_map(a, 
+                fig_in = None,
+                ax_in = None,
+                extent = None,
+                panel_label_loc = [0.03,0.90],
+                vmin:float=0.0, 
+                vmax:float=30.0, 
+                cmap:str = 'BrBG', 
+                plt_colorbar:bool = False,
+                title:str='',
+                central_longitude:float=0.0,
+                units:str = '',
+                return_map:bool = False,
+                panel_label:str = None,
+                ):
+
+    warnings.warn("Warning: global_map() is deprecated - use plot_global_map()")
+
+    
+    return plot_global_map(a, 
+                fig_in = fig_in,
+                ax_in = ax_in,
+                extent = extent,
+                panel_label_loc = panel_label_loc,
+                vmin=vmin, 
+                vmax=vmax, 
+                cmap = cmap, 
+                plt_colorbar = plt_colorbar,
+                title=title,
+                central_longitude=central_longitude,
+                units = units,
+                return_map = return_map,
+                panel_label = panel_label,
+                )
+
+def plot_global_map(a, 
                 fig_in = None,
                 ax_in = None,
                 extent = None,
