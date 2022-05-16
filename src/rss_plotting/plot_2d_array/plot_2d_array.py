@@ -12,15 +12,16 @@ def plot_2d_array(a,
                   zlabel=' ',
                   fig_in = None,
                   ax_in = None,
-                  font_size=13):
+                  font_size=13,figsize=(8,6)):
 
     import matplotlib.pyplot as plt
     import matplotlib.colors as colors
     import numpy as np
     import copy
 
+    
     if fig_in is None:
-        fig = plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=figsize)
     else:
         fig = fig_in
 
@@ -48,6 +49,7 @@ def plot_2d_array(a,
     #shading = 'auto' chooses shading based on sizes of X, Y and a
     #see https://matplotlib.org/stable/gallery/images_contours_and_fields/pcolormesh_grids.html
 
+    ax.tick_params(direction='in')
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label]):
         item.set_fontsize(font_size+4)
     for item in (ax.get_xticklabels() + ax.get_yticklabels()):
@@ -55,7 +57,7 @@ def plot_2d_array(a,
 
     if plt_colorbar:
         cbar = fig.colorbar(im,ax=ax)
-        cbar.ax.tick_params(labelsize=font_size)
+        cbar.ax.tick_params(labelsize=font_size,direction='in')
         cbar.ax.set_ylabel(zlabel, fontsize=font_size)
     
     return fig,ax

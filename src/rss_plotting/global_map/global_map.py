@@ -1,11 +1,95 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.colors as colors
 import cartopy.crs as ccrs
 from netCDF4 import Dataset as netcdf_dataset
 
 import typing
 import warnings
+
+def wind_cm():
+    import matplotlib.colors as mcolors
+
+    colors1 = plt.cm.RdYlBu_r(np.linspace(0.0, 1, 170))
+    colors2 = plt.cm.gist_heat_r(np.linspace(0.6, 1, 86))
+
+    # combine them and build a new colormap
+    colors = np.vstack((colors1, colors2))
+    return mcolors.LinearSegmentedColormap.from_list("my_colormap", colors)
+
+class MidpointNormalize(colors.Normalize):
+    def __init__(self, vmin=None, vmax=None, v1=None, v2=None, clip=False):
+        self.v1 = v1
+        self.v2 = v2
+        colors.Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        # I'm ignoring masked values and all kinds of edge cases to make a
+        # simple example...
+        x, y = [self.vmin, self.v1, self.v2, self.vmax], [0.0, 0.333, 0.666, 1.0]
+        z = np.ma.masked_array(np.interp(value, x, y), mask=np.isnan(value))
+
+        return z
+
+def swath_map(  a,      
+                lats,
+                lons,
+                fig_in = None,
+                ax_in = None,
+                extent = None,
+                panel_label_loc = [0.03,0.90],
+                vmin:float=0.0, 
+                vmax:float=30.0, 
+                cmap:str = 'BrBG', 
+                discrete_cmap = False,
+                num_levels = 10,
+                norm=None,
+                boundaries = None,
+                plt_colorbar:bool = False,
+                plt_coastlines:bool = True,
+                title:str='',
+                central_longitude:float=0.0,
+                units:str = '',
+                return_map:bool = False,
+                panel_label:str = None,
+                use_robinson = False,
+                ):
+    '''Plots a global map from swath data.  Input'''
+    #construct a 1440,720 map from
+
+    ilats = np.floor((lats + 90.0)/0.25).astype(int)
+    ilons = np.floor(lons/0.25).astype(int)
+
+    tot_map = np.zeros((720,1440))
+    num_map = np.zeros((720,1440))
+
+    num_map[ilats,ilons] += 1.0
+    tot_map[ilats,ilons] += a
+
+    map = tot_map/num_map
+
+    return plot_global_map(map, 
+                fig_in = fig_in,
+                ax_in = ax_in,
+                extent = extent,
+                panel_label_loc = panel_label_loc,
+                vmin=vmin,
+                vmax=vmax, 
+                cmap=cmap,
+                discrete_cmap=discrete_cmap,
+                norm=norm,
+                num_levels=num_levels,
+                boundaries=boundaries,
+                plt_colorbar=plt_colorbar,
+                plt_coastlines=plt_coastlines,
+                title=title,
+                central_longitude=central_longitude,
+                units=units,
+                return_map=return_map,
+                panel_label=panel_label,
+                use_robinson=use_robinson,
+                )
 
 def global_map(a, 
                 fig_in = None,
@@ -15,6 +99,7 @@ def global_map(a,
                 vmin:float=0.0, 
                 vmax:float=30.0, 
                 cmap:str = 'BrBG', 
+                norm=None,
                 plt_colorbar:bool = False,
                 title:str='',
                 central_longitude:float=0.0,
@@ -34,6 +119,7 @@ def global_map(a,
                 vmin=vmin, 
                 vmax=vmax, 
                 cmap = cmap, 
+                norm=None,
                 plt_colorbar = plt_colorbar,
                 title=title,
                 central_longitude=central_longitude,
@@ -50,12 +136,18 @@ def plot_global_map(a,
                 vmin:float=0.0, 
                 vmax:float=30.0, 
                 cmap:str = 'BrBG', 
+                discrete_cmap = False,
+                norm=None,
+                num_levels = 10,
+                boundaries = None,
                 plt_colorbar:bool = False,
+                plt_coastlines:bool = True,
                 title:str='',
                 central_longitude:float=0.0,
                 units:str = '',
                 return_map:bool = False,
                 panel_label:str = None,
+                use_robinson = False,
                 ):
 
 
@@ -66,7 +158,11 @@ def plot_global_map(a,
         fig = fig_in
 
     if ax_in is None:
-        ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree(central_longitude = central_longitude),title=title)
+        if use_robinson:
+            ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson(central_longitude = central_longitude),title=title)
+        else:
+            ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree(central_longitude = central_longitude),title=title)
+        
     else:
         ax = ax_in
 
@@ -74,19 +170,44 @@ def plot_global_map(a,
         item.set_fontsize(16)
     sz = a.shape
     num_lons = sz[1]
-    cmap_copy = plt.get_cmap(cmap).copy()
-    cmap_copy.set_bad('grey')
-    map = ax.imshow(np.flipud(np.roll(a, int(num_lons/2), axis=1)), cmap=cmap_copy, origin='upper', transform=ccrs.PlateCarree(),
-                    norm=mpl.colors.Normalize(vmin=vmin, vmax=vmax), extent=img_extent)
-    if plt_colorbar:
-        cbar = fig.colorbar(map, shrink=0.7, orientation='horizontal')
-        cbar.ax.tick_params(labelsize=14)
-    try:
-        ax.coastlines()
-    except:
-        print('Trouble getting coastline file')
+    if norm is None:
+        if discrete_cmap:
+            cmap_copy = plt.get_cmap(cmap).copy()
+            cmap_list = [cmap_copy(i) for i in range(cmap_copy.N)]
 
+            cmap2 = mpl.colors.LinearSegmentedColormap.from_list('cmap_segmented', cmap_list,cmap_copy.N)
+            if boundaries is None:
+                boundaries = np.linspace(vmin,vmax,num_levels+1)
+            
+            norm = mpl.colors.BoundaryNorm(boundaries,cmap2.N,extend='both')
+        else:
+            cmap_copy = plt.get_cmap(cmap).copy()
+            cmap_copy.set_bad('grey')
+            norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    else:
+        cmap_copy = plt.get_cmap(cmap).copy()
+        cmap_copy.set_bad('grey')
+
+
+    map = ax.imshow(np.flipud(np.roll(a, int(num_lons/2), axis=1)), cmap=cmap_copy, origin='upper', transform=ccrs.PlateCarree(),
+                    norm=norm, extent=img_extent)
+    if plt_colorbar:
+        if discrete_cmap:
+            cbar = fig.colorbar(map, shrink=0.7, orientation='horizontal',extend='both')
+            cbar.ax.tick_params(labelsize=14)
+        else:
+            cbar = fig.colorbar(map, shrink=0.7, orientation='horizontal',extend='both')
+            cbar.ax.tick_params(labelsize=14)
+        
+    if plt_coastlines:
+        try:
+            ax.coastlines()
+        except:
+            print('Trouble getting coastline file')
+
+    ax.set_title(title)
     ax.set_global()
+
     ax.text(0.5, -0.2, units, va='bottom', ha='center',
         rotation='horizontal', rotation_mode='anchor',
         transform=ax.transAxes)
@@ -94,8 +215,8 @@ def plot_global_map(a,
         ax.set_extent(extent,crs = ccrs.PlateCarree())
 
     if panel_label is not None:
-        plt.text(panel_label_loc[0],panel_label_loc[1],panel_label,transform=ax.transAxes,fontsize=14,
-                 bbox={"facecolor": 'white',"edgecolor": 'white'})
+        plt.text(panel_label_loc[0],panel_label_loc[1],panel_label,transform=ax.transAxes,fontsize=13,
+                 bbox={"facecolor": 'grey',"edgecolor": 'grey'})
 
     if return_map:
         return fig, ax, map
@@ -213,3 +334,69 @@ def write_global_map_netcdf(data_in,file_nc='',standard_name='',long_name = '',v
     print('Wrote: ',file_nc)
 
     return
+
+def plot_multiple_maps_with_common_colorbar(maps,
+                                            nrows=1,
+                                            ncols=1,
+                                            vmin=0.0,
+                                            vmax=1.0,
+                                            titles = None,
+                                            panel_labels = None,
+                                            panel_label_loc=[0.03,0.87],
+                                            cbar_label='',
+                                            cmap='BrBG',
+                                            ):
+
+    import matplotlib.pyplot as plt
+    import cartopy.crs as ccrs
+    from rss_plotting.global_map import plot_global_map
+
+    num_maps = len(maps)
+    assert(num_maps == ncols*nrows)
+
+    xsize = 2+ncols*3
+    ysize = 2+nrows*1.8
+    fig = plt.figure(figsize=(xsize,ysize))
+    axs = []
+    for label in [titles,panel_labels]:
+        if label is None:
+            label = ['']*num_maps
+    
+    for icol in range(ncols):
+        for irow in range(0,nrows):
+            index = 1 + icol + ncols*irow
+            print(icol,irow,index)
+            axs.append(fig.add_subplot(nrows, ncols, index, projection=ccrs.PlateCarree(central_longitude = 0.0))) 
+    print
+    for imap,map in enumerate(maps):
+        print(imap,num_maps)
+        if imap < (num_maps-1):
+            fig,axs[imap] = plot_global_map(map,
+                                            vmin=vmin,vmax=vmax,
+                                            title=titles[imap],
+                                            panel_label=panel_labels[imap],
+                                            fig_in=fig,
+                                            ax_in=axs[imap],
+                                            plt_colorbar=False,
+                                            cmap=cmap,
+                                            panel_label_loc=panel_label_loc,
+                                            return_map=False)
+        else:
+            fig,axs[imap],im = plot_global_map(map,
+                                            vmin=vmin,vmax=vmax,
+                                            title=titles[imap],
+                                            panel_label=panel_labels[imap],
+                                            fig_in=fig,
+                                            ax_in=axs[imap],
+                                            plt_colorbar=False,
+                                            cmap=cmap,
+                                            panel_label_loc=panel_label_loc,
+                                            return_map=True)
+
+    fig.subplots_adjust(bottom=0.20,top=0.95,left = 0.1,right=0.9,hspace=0.03,wspace=0.05)
+    cb_ax = fig.add_axes([0.2,0.10,0.6,0.03])
+    cbar = fig.colorbar(im,cax=cb_ax,orientation='horizontal')
+    cbar.set_label(cbar_label,fontsize=16)
+    cb_ax.tick_params(axis='x', labelsize=14)
+
+    return fig,axs
