@@ -141,6 +141,7 @@ def plot_global_map(a,
                 num_levels = 10,
                 boundaries = None,
                 plt_colorbar:bool = False,
+                color_bar_orientation = 'horizontal',
                 plt_coastlines:bool = True,
                 title:str='',
                 central_longitude:float=0.0,
@@ -193,10 +194,10 @@ def plot_global_map(a,
                     norm=norm, extent=img_extent)
     if plt_colorbar:
         if discrete_cmap:
-            cbar = fig.colorbar(map, shrink=0.7, orientation='horizontal',extend='both')
+            cbar = fig.colorbar(map, shrink=0.7, orientation=color_bar_orientation,extend='both')
             cbar.ax.tick_params(labelsize=14)
         else:
-            cbar = fig.colorbar(map, shrink=0.7, orientation='horizontal',extend='both')
+            cbar = fig.colorbar(map, shrink=0.7, orientation=color_bar_orientation,extend='both')
             cbar.ax.tick_params(labelsize=14)
         
     if plt_coastlines:
@@ -215,7 +216,7 @@ def plot_global_map(a,
         ax.set_extent(extent,crs = ccrs.PlateCarree())
 
     if panel_label is not None:
-        plt.text(panel_label_loc[0],panel_label_loc[1],panel_label,transform=ax.transAxes,fontsize=13,
+        plt.text(panel_label_loc[0],panel_label_loc[1],panel_label,transform=ax.transAxes,fontsize=11,
                  bbox={"facecolor": 'grey',"edgecolor": 'grey'})
 
     if return_map:
@@ -354,6 +355,11 @@ def plot_multiple_maps_with_common_colorbar(maps,
     num_maps = len(maps)
     assert(num_maps == ncols*nrows)
 
+    if titles is None:
+        titles = ['' for i in range(num_maps)]
+    if panel_labels is None:
+        panel_labels = ['' for i in range(num_maps)]
+
     xsize = 2+ncols*3
     ysize = 2+nrows*1.8
     fig = plt.figure(figsize=(xsize,ysize))
@@ -365,11 +371,11 @@ def plot_multiple_maps_with_common_colorbar(maps,
     for icol in range(ncols):
         for irow in range(0,nrows):
             index = 1 + icol + ncols*irow
-            print(icol,irow,index)
+            #print(icol,irow,index)
             axs.append(fig.add_subplot(nrows, ncols, index, projection=ccrs.PlateCarree(central_longitude = 0.0))) 
-    print
+    #print
     for imap,map in enumerate(maps):
-        print(imap,num_maps)
+        #print(imap,num_maps)
         if imap < (num_maps-1):
             fig,axs[imap] = plot_global_map(map,
                                             vmin=vmin,vmax=vmax,
@@ -399,4 +405,73 @@ def plot_multiple_maps_with_common_colorbar(maps,
     cbar.set_label(cbar_label,fontsize=16)
     cb_ax.tick_params(axis='x', labelsize=14)
 
+    return fig,axs
+
+def plot_multiple_maps_with_different_colorbar(maps,
+                                            nrows=1,
+                                            ncols=1,
+                                            vmin=0.0,
+                                            vmax=1.0,
+                                            titles = None,
+                                            panel_labels = None,
+                                            panel_label_loc=[0.03,0.85],
+                                            cbar_labels='',
+                                            cmap='BrBG',
+                                            ):
+
+    import matplotlib.pyplot as plt
+    import cartopy.crs as ccrs
+    from rss_plotting.global_map import plot_global_map
+
+    num_maps = len(maps)
+    assert(num_maps == ncols*nrows)
+
+    if titles is None:
+        titles = ['' for i in range(num_maps)]
+    if panel_labels is None:
+        panel_labels = ['' for i in range(num_maps)]
+
+    xsize = 2+ncols*3
+    ysize = 2+nrows*2.0
+    fig = plt.figure(figsize=(xsize,ysize))
+    axs = []
+    for label in [titles,panel_labels]:
+        if label is None:
+            label = ['']*num_maps
+    
+    for icol in range(ncols):
+        for irow in range(0,nrows):
+            index = 1 + icol + ncols*irow
+            #print(icol,irow,index)
+            axs.append(fig.add_subplot(nrows, ncols, index, projection=ccrs.PlateCarree(central_longitude = 0.0))) 
+    #print
+    map_out_list = []
+    for imap,map in enumerate(maps):
+        #print(imap,num_maps)
+
+        fig,axs[imap],map_out = plot_global_map(map,
+                                            vmin=vmin[imap],vmax=vmax[imap],
+                                            title=titles[imap],
+                                            panel_label=panel_labels[imap],
+                                            fig_in=fig,
+                                            ax_in=axs[imap],
+                                            plt_colorbar=False,
+                                            cmap=cmap,
+                                            panel_label_loc=panel_label_loc,
+                                            return_map=True)
+        map_out_list.append(map_out)
+
+    fig.subplots_adjust(bottom=0.10,top=0.95,left = 0.1,right=0.9,hspace=0.6,wspace=0.15)
+    
+    for k,out_map in enumerate(map_out_list):
+        if k < 20:
+            locs = axs[k].get_position().bounds
+
+            yloc = locs[1] - 0.16*locs[3]
+            xloc = locs[0] + 0.1*locs[2]
+            print(xloc,yloc)
+            cb_ax = fig.add_axes([xloc,yloc,0.28,0.008])
+            cbar = fig.colorbar(out_map,cax=cb_ax,orientation='horizontal')
+            cbar.set_label(cbar_labels[k],fontsize=8)
+            cb_ax.tick_params(axis='x', labelsize=8)
     return fig,axs

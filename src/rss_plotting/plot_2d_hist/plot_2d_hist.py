@@ -75,13 +75,13 @@ def plot_2d_hist(hist,
     ax.set_xlabel(xtitle)
     ax.set_ylabel(ytitle)
     if norm == 'Log':
-        im = ax.pcolormesh(X, Y, hist, cmap=cmap, norm=colors.LogNorm(vmin=hist_max / num_scale, vmax=hist_max))
+        im = ax.pcolormesh(X, Y, np.transpose(hist), cmap=cmap, norm=colors.LogNorm(vmin=hist_max / num_scale, vmax=hist_max))
     elif norm == 'Pow05':
-        im = ax.pcolormesh(X, Y, hist, cmap=cmap, norm=colors.PowerNorm(gamma=0.5))
+        im = ax.pcolormesh(X, Y, np.transpose(hist), cmap=cmap, norm=colors.PowerNorm(gamma=0.5))
     elif norm == 'Pow03':
-        im = ax.pcolormesh(X, Y, hist, cmap=cmap, norm=colors.PowerNorm(gamma=0.3))
+        im = ax.pcolormesh(X, Y, np.transpose(hist), cmap=cmap, norm=colors.PowerNorm(gamma=0.3))
     else:
-        im = ax.pcolormesh(X, Y, hist, cmap=cmap, norm=colors.Normalize())
+        im = ax.pcolormesh(X, Y, np.transpose(hist), cmap=cmap, norm=colors.Normalize())
    
     
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label]):
