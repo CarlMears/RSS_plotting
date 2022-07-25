@@ -3,6 +3,7 @@ import datetime
 import argparse
 from pathlib import Path
 from calendar import monthrange
+import calendar
 import numpy as np
 from scipy import ndimage
 import multiprocessing
@@ -14,6 +15,10 @@ from netCDF4 import Dataset as netcdf_dataset
 
 from rss_sat_readers import read_rss_satellite_daily_xr
 from rss_land_ice_maps.global_land_fraction import read_land_fraction_1440_720
+
+#some constants to make the figures come out the same size
+figsize=(16.4, 9.2)
+dpi=141.6 
 
 
 def ccmp_30_stream_fig_filename(
@@ -54,45 +59,57 @@ def ccmp_30_stream_fig_filename(
         )
     return png_file
 
-
-def read_ccmp_30(
-    *,
-    year,
-    month,
-    day,
-    time_step,
-    verbose=False,
-    path="P:/CCMP/MEaSUREs/era5_current_corrected_adj4/v2.0/netcdf/",
+def ccmp_30_fig_filename_monthly(*,
+    year : int,
+    month : int,
+    path=Path("P:/CCMP/MEaSUREs/era5_current_corrected_adj4/v2.0/plots/"),
+    plot_type : str,
+    low_res=False,
 ):
 
-    assert year >= 1979, "year out of range, year must be larger than 2015"
+    assert year >= 1993, "year out of range, year must be larger than 2015"
     assert month >= 1, "month out of range"
     assert month <= 12, "month out of range"
-    num_days_in_month = monthrange(year, month)[1]
-    assert day >= 1, "day out of range"
-    assert day <= num_days_in_month, "day out of range"
-    assert time_step >= 0, "time step out of range"
-    assert time_step <= 3, "time step out of range"
 
-    path = Path(path)
-    nc_file = (
+    if low_res:
+        png_file = (
+            path
+            / f"y{year:04d}"
+            / f"m{month:02d}"
+            / f"CCMP_30_Wind_Analysis_{year:04d}_{month:02d}_{plot_type}.lo.png"
+        )
+    else:
+        png_file = (
+            path
+            / f"y{year:04d}"
+            / f"m{month:02d}"
+            / f"CCMP_30_Wind_Analysis_{year:04d}_{month:02d}_{plot_type}.png"
+        )
+    return png_file
+
+def ccmp_30_fig_filename_monthly_clim(*,
+    month : int,
+    path=Path("P:/CCMP/MEaSUREs/era5_current_corrected_adj4/v2.0/plots/clim"),
+    plot_type : str,
+    ):
+
+    assert month >= 1, "month out of range"
+    assert month <= 12, "month out of range"
+
+    png_file = (
         path
-        / f"y{year:04d}"
-        / f"m{month:02d}"
-        / f"CCMP_Wind_Analysis_{year:04d}{month:02d}{day:02d}_V03.0beta2_L3.0_RSS.nc"
+        / f"CCMP_30_Wind_Analysis_Clim_1995-2014_{month:02d}_{plot_type}.png"
     )
-    if verbose:
-        print(f"Reading {nc_file}")
+    return png_file
 
-    with netcdf_dataset(nc_file) as dataset:
-        u10 = dataset.variables["uwnd"][:, :, time_step]
-        v10 = dataset.variables["vwnd"][:, :, time_step]
-        lons = dataset.variables["longitude"][:]
-        lats = dataset.variables["latitude"][:]
+def ccmp_30_stream_fig_filename_monthly(*,
+                                        year : int,
+                                        month : int,
+                                        path=Path("P:/CCMP/MEaSUREs/era5_current_corrected_adj4/v2.0/plots/"),
+                                        low_res=False
+                                        ):
 
-    ccmp_wind = dict(lats=lats, lons=lons, u10=u10, v10=v10)
-
-    return ccmp_wind
+    return ccmp_30_fig_filename_monthly(year=year,month=month,path=path,plot_type='stream',low_res=low_res)
 
 
 def wind_cm():
@@ -122,6 +139,13 @@ def get_ssmi_ice_map(*, year, month, day):
     is_ice = ssmis["byte_data"].values[2, :, :] == 252
     ice = np.zeros((720, 1440))
     ice[is_ice] = 60.0
+
+    for ilon in range(0,1440):
+        ice_column = ice[:,ilon]
+        min_loc = np.min(np.where(ice > 59.0))
+        if min_loc < 300:
+            ice_column[0:min_loc] = 60.0
+
     ice[land_frac > 0.9] = np.nan
     ice = np.roll(ice, -120, axis=1)
     ice[ice < 60.0] = np.nan
@@ -133,7 +157,7 @@ def plot_streamplot(x,y,u,v,w10,ice,year,mnth,day,time_step):
 
     # this is kludgy way of making the map part of the come out at 1440x720
     fig =  plt.figure(
-        figsize=(16.4, 9.2), dpi=141.6  
+        figsize=figsize, dpi=dpi  
         ) 
 
     midnorm = MidpointNormalize(vmin=0.0, v1=12.0, v2=25.0, vmax=40.0)
@@ -218,6 +242,248 @@ def plot_streamplot(x,y,u,v,w10,ice,year,mnth,day,time_step):
     fig.savefig(png_file, dpi="figure", bbox_inches="tight")
     plt.close(fig)
 
+def plot_monthly_streamplot(x,y,u,v,w10,ice,year,mnth):
+
+    # this is kludgy way of making the map part of the come out at 1440x720
+    fig =  plt.figure(
+        figsize=figsize, dpi=dpi  
+        ) 
+
+    midnorm = MidpointNormalize(vmin=0.0, v1=12.0, v2=25.0, vmax=40.0)
+    central_longitude = 210.0
+    cmap = wind_cm()
+    central_longitude = 210.0
+    land_frac = read_land_fraction_1440_720()
+    land_frac = ndimage.uniform_filter(land_frac, size=5, mode="wrap")
+    img_extent = [-180.0, 180.0, -90.0, 90.0]
+
+    title_str = (
+        "Monthly Mean: CCMP 3.0 "
+        + str(year).zfill(2)
+        + "-"
+        + str(mnth).zfill(2)
+    )
+    ax = fig.add_subplot(
+        1,
+        1,
+        1,
+        projection=ccrs.PlateCarree(central_longitude=central_longitude),
+        position=[1.0, 1.0, 14.4, 7.2],
+    )
+    ax.set_title(title_str, fontsize=18)  # title of plot
+
+    w10_to_plot = np.ma.masked_where(~np.isfinite(w10), w10)
+    map = ax.imshow(
+        np.flipud(w10_to_plot),
+        origin="upper",
+        transform=ccrs.PlateCarree(central_longitude=central_longitude),
+        norm=midnorm,
+        extent=img_extent,
+        cmap=cmap,
+    )
+
+    temp = ice[640:720]
+    tempw = w10[640:720]
+
+    ice_map = np.ma.masked_where(ice < 60.0, ice)
+    map2 = ax.imshow(
+        np.flipud(ice_map),
+        origin="upper",
+        transform=ccrs.PlateCarree(central_longitude=central_longitude),
+        norm=midnorm,
+        extent=img_extent,
+        cmap=plt.cm.Greys_r,
+    )
+
+    cbar = fig.colorbar(
+        map,
+        shrink=0.70,
+        orientation="vertical",
+    )
+    cbar.set_label("Wind Speed (m/s)", size=16)
+    cbar.ax.tick_params(labelsize=14)
+
+    ax.streamplot(
+        x,
+        y,
+        u,
+        v,
+        linewidth=0.5,
+        density=[10, 5],
+        color="tan",
+        arrowsize=0.5,
+        minlength=0.01,
+    )
+    ax.add_feature(cfeature.LAND, facecolor="grey", zorder=10)
+    png_file = ccmp_30_fig_filename_monthly(year=year,month=mnth,plot_type='stream')
+
+    print(png_file)
+    os.makedirs(
+         os.path.dirname(png_file), exist_ok=True
+    )  # succeeds even if directory exists.
+
+    fig.savefig(png_file, dpi="figure", bbox_inches="tight")
+    plt.close(fig)
+
+def plot_monthly_clim_streamplot(x,y,u,v,w10,ice,mnth):
+
+    # this is kludgy way of making the map part of the come out at 1440x720
+    fig =  plt.figure(
+        figsize=figsize, dpi=dpi  
+        ) 
+
+    midnorm = MidpointNormalize(vmin=0.0, v1=12.0, v2=25.0, vmax=40.0)
+    central_longitude = 210.0
+    cmap = wind_cm()
+    central_longitude = 210.0
+    land_frac = read_land_fraction_1440_720()
+    land_frac = ndimage.uniform_filter(land_frac, size=5, mode="wrap")
+    img_extent = [-180.0, 180.0, -90.0, 90.0]
+
+    title_str = f'Monthly Cimatology: CCMP 3.0 (1995-2014) Month:{mnth:02d}'
+
+    ax = fig.add_subplot(
+        1,
+        1,
+        1,
+        projection=ccrs.PlateCarree(central_longitude=central_longitude),
+        position=[1.0, 1.0, 14.4, 7.2],
+    )
+    ax.set_title(title_str, fontsize=18)  # title of plot
+
+    w10_to_plot = np.ma.masked_where(~np.isfinite(w10), w10)
+    map = ax.imshow(
+        np.flipud(w10_to_plot),
+        origin="upper",
+        transform=ccrs.PlateCarree(central_longitude=central_longitude),
+        norm=midnorm,
+        extent=img_extent,
+        cmap=cmap,
+    )
+
+    temp = ice[640:720]
+    tempw = w10[640:720]
+
+    ice_map = np.ma.masked_where(ice < 60.0, ice)
+    map2 = ax.imshow(
+        np.flipud(ice_map),
+        origin="upper",
+        transform=ccrs.PlateCarree(central_longitude=central_longitude),
+        norm=midnorm,
+        extent=img_extent,
+        cmap=plt.cm.Greys_r,
+    )
+
+    cbar = fig.colorbar(
+        map,
+        shrink=0.70,
+        orientation="vertical",
+    )
+    cbar.set_label("Wind Speed (m/s)", size=16)
+    cbar.ax.tick_params(labelsize=14)
+
+    ax.streamplot(
+        x,
+        y,
+        u,
+        v,
+        linewidth=0.5,
+        density=[10, 5],
+        color="tan",
+        arrowsize=0.5,
+        minlength=0.01,
+    )
+    ax.add_feature(cfeature.LAND, facecolor="grey", zorder=10)
+    png_file = ccmp_30_fig_filename_monthly_clim(month=mnth,plot_type='stream')
+    print(png_file)
+    os.makedirs(
+         os.path.dirname(png_file), exist_ok=True
+    )  # succeeds even if directory exists.
+
+    fig.savefig(png_file, dpi="figure", bbox_inches="tight")
+    plt.close(fig)
+
+def plot_monthly_anom_streamplot(x,y,u,v,w10,ice,year,mnth):
+
+    # this is kludgy way of making the map part of the come out at 1440x720
+    fig =  plt.figure(
+        figsize=figsize, dpi=dpi  
+        ) 
+
+    midnorm = MidpointNormalize(vmin=0.0, v1=3.0, v2=6.0, vmax=10.0)
+    central_longitude = 210.0
+    cmap = wind_cm()
+    central_longitude = 210.0
+    land_frac = read_land_fraction_1440_720()
+    land_frac = ndimage.uniform_filter(land_frac, size=5, mode="wrap")
+    img_extent = [-180.0, 180.0, -90.0, 90.0]
+
+    title_str = (
+        "Monthly Mean Vector Anomaly: CCMP 3.0 "
+        + str(year).zfill(2)
+        + "-"
+        + str(mnth).zfill(2)
+    )
+    ax = fig.add_subplot(
+        1,
+        1,
+        1,
+        projection=ccrs.PlateCarree(central_longitude=central_longitude),
+        position=[1.0, 1.0, 14.4, 7.2],
+    )
+    ax.set_title(title_str, fontsize=18)  # title of plot
+
+    w10_to_plot = np.ma.masked_where(~np.isfinite(w10), w10)
+    map = ax.imshow(
+        np.flipud(w10_to_plot),
+        origin="upper",
+        transform=ccrs.PlateCarree(central_longitude=central_longitude),
+        norm=midnorm,
+        extent=img_extent,
+        cmap=cmap,
+    )
+
+    ice_map = np.ma.masked_where(ice < 60.0, ice)
+    map2 = ax.imshow(
+        np.flipud(ice_map),
+        origin="upper",
+        transform=ccrs.PlateCarree(central_longitude=central_longitude),
+        norm=midnorm,
+        extent=img_extent,
+        cmap=plt.cm.Greys_r,
+    )
+
+    cbar = fig.colorbar(
+        map,
+        shrink=0.70,
+        orientation="vertical",
+    )
+    cbar.set_label("Vector Anomaly Magnitude (m/s)", size=16)
+    cbar.ax.tick_params(labelsize=14)
+
+    ax.streamplot(
+        x,
+        y,
+        u,
+        v,
+        linewidth=0.5,
+        density=[10, 5],
+        color="tan",
+        arrowsize=0.5,
+        minlength=0.01,
+    )
+    ax.add_feature(cfeature.LAND, facecolor="grey", zorder=10)
+    png_file = ccmp_30_fig_filename_monthly(
+        year=year, month=mnth,plot_type='stream_anom'
+    )
+    print(png_file)
+    os.makedirs(
+         os.path.dirname(png_file), exist_ok=True
+    )  # succeeds even if directory exists.
+
+    fig.savefig(png_file, dpi="figure", bbox_inches="tight")
+    plt.close(fig)
+
 def plot_clim_component_map(*,
                             w10 : np.ndarray,
                             ice : np.ndarray,
@@ -231,7 +497,7 @@ def plot_clim_component_map(*,
 
     # this is kludgy way of making the map part of the come out at 1440x720
     fig =  plt.figure(
-        figsize=(16.4, 9.2), dpi=141.6  
+        figsize=figsize, dpi=dpi  
         ) 
 
     central_longitude = 210.0
@@ -297,12 +563,78 @@ def plot_clim_component_map(*,
     fig.savefig(png_file, dpi="figure", bbox_inches="tight")
     plt.close(fig)
 
+def plot_scalar_anomaly_map(*,
+                            anom : np.ndarray,
+                            ice: np.ndarray,
+                            title : str,
+                            var='',
+                            png_file : str,
+                            norm,
+                            cmap
+                            ):
+
+
+    fig =  plt.figure(
+        figsize=figsize, dpi=dpi  
+        ) 
+
+    central_longitude = 210.0
+    
+    img_extent = [-180.0, 180.0, -90.0, 90.0]
+    
+    ax = fig.add_subplot(
+        1,
+        1,
+        1,
+        projection=ccrs.PlateCarree(central_longitude=central_longitude),
+        position=[1.0, 1.0, 14.4, 7.2],
+    )
+    ax.set_title(title, fontsize=18)  # title of plot
+
+    anom_to_plot = np.ma.masked_where(~np.isfinite(anom), anom)
+    map = ax.imshow(
+        np.flipud(anom_to_plot),
+        origin="upper",
+        transform=ccrs.PlateCarree(central_longitude=central_longitude),
+        norm=norm,
+        extent=img_extent,
+        cmap=cmap,
+    )
+
+    ice_map = np.ma.masked_where(ice < 60.0, ice)
+    ax.imshow(
+        np.flipud(ice_map),
+        origin="upper",
+        transform=ccrs.PlateCarree(central_longitude=central_longitude),
+        norm=norm,
+        extent=img_extent,
+        cmap=plt.cm.Greys_r,
+    )
+    
+    cbar = fig.colorbar(
+        map,
+        shrink=0.70,
+        orientation="vertical",
+    )
+    cbar.set_label(f" {var} (m/s)", size=16)
+    cbar.ax.tick_params(labelsize=14)
+
+    ax.add_feature(cfeature.LAND, facecolor="grey", zorder=10)
+    
+    print(png_file)
+    os.makedirs(
+         os.path.dirname(png_file), exist_ok=True
+    )  # succeeds even if directory exists.
+
+    fig.savefig(png_file, dpi="figure", bbox_inches="tight")
+    plt.close(fig)
+
 
 def spawn(func, *args):
     proc = multiprocessing.Process(target=func, args=args)
     proc.start()
     # wait until proc terminates.
-    proc.join()
+    return proc
 
 
 class MidpointNormalize(colors.Normalize):
