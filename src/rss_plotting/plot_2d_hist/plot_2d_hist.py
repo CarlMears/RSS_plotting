@@ -33,6 +33,8 @@ def calc_stats_from_hist(hist,edges):
     num = np.sum(hist)
     return mean,stddev,num
 
+
+
 def plot_2d_hist(hist, 
                  xedges, 
                  yedges,

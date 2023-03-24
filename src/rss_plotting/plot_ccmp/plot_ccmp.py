@@ -59,6 +59,46 @@ def ccmp_30_stream_fig_filename(
         )
     return png_file
 
+def ccmp_31_stream_fig_filename(
+    year=2016,
+    month=1,
+    day=1,
+    time_step=0,
+    path=Path("P:/CCMP/MEaSUREs/era5_current_corrected_adj4_v31/v3.1/plots/"),
+    low_res=False,
+):
+
+    assert year >= 1993, "year out of range, year must be >= than 1993"
+    assert month >= 1, "month out of range"
+    assert month <= 12, "month out of range"
+    num_days_in_month = monthrange(year, month)[1]
+    assert day >= 1, "day out of range"
+    assert day <= num_days_in_month, "day out of range"
+    time_step = int(time_step)
+    assert time_step >= 0, "time step out of range"
+    assert time_step <= 3, "time step out of range"
+
+    hour = time_step * 6
+    if low_res:
+        png_file = (
+            path
+            / f"y{year:04d}"
+            / f"m{month:02d}"
+            / f"d{day:02d}"
+            / f"CCMP_31_Wind_Analysis_{year:04d}_{month:02d}_{day:02d}_{hour:02d}z_stream.lo.png"
+        )
+    else:
+        png_file = (
+            path
+            / f"y{year:04d}"
+            / f"m{month:02d}"
+            / f"d{day:02d}"
+            / f"CCMP_31_Wind_Analysis_{year:04d}_{month:02d}_{day:02d}_{hour:02d}z_stream.png"
+        )
+
+    return png_file
+
+
 def ccmp_30_fig_filename_monthly(*,
     year : int,
     month : int,
@@ -231,7 +271,7 @@ def plot_streamplot(x,y,u,v,w10,ice,year,mnth,day,time_step):
         minlength=0.01,
     )
     ax.add_feature(cfeature.LAND, facecolor="grey", zorder=10)
-    png_file = ccmp_30_stream_fig_filename(
+    png_file = ccmp_31_stream_fig_filename(
         year=year, month=mnth, day=day, time_step=time_step
     )
     print(png_file)
@@ -258,7 +298,7 @@ def plot_monthly_streamplot(x,y,u,v,w10,ice,year,mnth):
     img_extent = [-180.0, 180.0, -90.0, 90.0]
 
     title_str = (
-        "Monthly Mean: CCMP 3.0 "
+        "Monthly Mean: CCMP 3.1 "
         + str(year).zfill(2)
         + "-"
         + str(mnth).zfill(2)

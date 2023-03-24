@@ -133,6 +133,7 @@ def plot_global_map(a,
                 ax_in = None,
                 extent = None,
                 panel_label_loc = [0.03,0.90],
+                panel_label_size = 12,
                 vmin:float=0.0, 
                 vmax:float=30.0, 
                 cmap:str = 'BrBG', 
@@ -147,6 +148,7 @@ def plot_global_map(a,
                 central_longitude:float=0.0,
                 units:str = '',
                 return_map:bool = False,
+                return_cbar:bool = False,
                 panel_label:str = None,
                 use_robinson = False,
                 ):
@@ -194,7 +196,7 @@ def plot_global_map(a,
                     norm=norm, extent=img_extent)
     if plt_colorbar:
         if discrete_cmap:
-            cbar = fig.colorbar(map, shrink=0.7, orientation=color_bar_orientation,extend='both')
+            cbar = fig.colorbar(map, shrink=0.7, orientation=color_bar_orientation,extend='neither')
             cbar.ax.tick_params(labelsize=14)
         else:
             cbar = fig.colorbar(map, shrink=0.7, orientation=color_bar_orientation,extend='both')
@@ -216,15 +218,17 @@ def plot_global_map(a,
         ax.set_extent(extent,crs = ccrs.PlateCarree())
 
     if panel_label is not None:
-        plt.text(panel_label_loc[0],panel_label_loc[1],panel_label,transform=ax.transAxes,fontsize=11,
+        plt.text(panel_label_loc[0],panel_label_loc[1],panel_label,transform=ax.transAxes,fontsize=panel_label_size,
                  bbox={"facecolor": 'grey',"edgecolor": 'grey'})
 
     if return_map:
         return fig, ax, map
+    elif return_cbar:
+        return fig, ax, cbar
     else:
         return fig, ax
 
-def global_map_w_zonal_mean(a, 
+def plot_global_map_w_zonal_mean(a, 
                     vmin=0.0, 
                     vmax=30.0, 
                     zmin=None,
